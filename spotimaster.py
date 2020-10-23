@@ -159,7 +159,7 @@ if ((sys.argv[1] != "-love") and (sys.argv[1] != "-playpause") and (sys.argv[1] 
     (sys.argv[1] != "-use-cache") and (sys.argv[1] != "-force") and (sys.argv[1] != "-clear") and (sys.argv[1] != "-superlove") and 
     (sys.argv[1] != "-spotify") and (sys.argv[1] != "--use-cache") and (sys.argv[1] != "--force") and (sys.argv[1] != "--spotify") and
     (sys.argv[1] != "--superlove") and (sys.argv[1] != "--clear") and (sys.argv[1] != "--quiet") and (sys.argv[1] != "-wopenuri") and
-    (sys.argv[1] != "-get-devices") and (sys.argv[1] != "-nostatus") and (sys.argv[1] != "--nostatus") and (sys.argv[1] != "-isplaying")):
+    (sys.argv[1] != "-get-devices") and (sys.argv[1] != "-nostatus") and (sys.argv[1] != "--nostatus") and (sys.argv[1] != "-isplaying") and (sys.argv[1] != "-waddtocurrentqueue")):
 
     arguments = ' '.join(sys.argv[1:])
 
@@ -182,6 +182,7 @@ quiet = False
 nostatus = False
 superlove = False
 wopenuri_link = ''
+waddtocurrentqueue_link = ''
 force_cache = False
 spotifyd_bus = None
 spotifyd_properties = None
@@ -266,8 +267,17 @@ if (sys.argv[1] == "-wopenuri"):
         sys.exit(1)
     else:
         wopenuri_link = sys.argv[2]
-        sys.argv.remove(sys.argv[2]) #need to be removed to keep clean spotty parameters        
-    
+        sys.argv.remove(sys.argv[2]) #need to be removed to keep clean spotty parameters    
+#another check for waddtocurrentqueue
+if (sys.argv[1] == "-waddtocurrentqueue"):
+    if (not len(sys.argv) > 2):
+        print('Please provide an uri, example: "spotimaster -waddtocurrentqueue_link spotify:track:2oNibyaUGIHWXtYIkVtxIt"')
+        if not quiet: print('')
+        if not nostatus: print('false')
+        sys.exit(1)
+    else:
+        waddtocurrentqueue_link = sys.argv[2]
+        sys.argv.remove(sys.argv[2]) #need to be removed to keep clean spotty parameters 
 #########################################################################################################################################
 
 if (sys.argv[1] == "-check"):    
@@ -299,7 +309,7 @@ if (sys.argv[1] == "-check"):
 
 #Prepare the access token for the Web-API
 if ((sys.argv[1] == "-love") or (sys.argv[1] == "-unlove") or (sys.argv[1] == "-isloved") or (sys.argv[1] == "-wplaypause") or (sys.argv[1] == "-wnext") or 
-    (sys.argv[1] == "-wprev") or (sys.argv[1] == "-wopenuri") or (sys.argv[1] == "-get-devices") or (sys.argv[1] == "-isplaying")):
+    (sys.argv[1] == "-wprev") or (sys.argv[1] == "-wopenuri") or (sys.argv[1] == "-get-devices") or (sys.argv[1] == "-isplaying") or (sys.argv[1] == "-waddtocurrentqueue")):
 
     if ((not len(sys.argv) > 2) and (spotty_params == '') and not force_cache):
         print('Please provide spotty parameters, check --help for more infos')
@@ -779,6 +789,7 @@ if (sys.argv[1] == "-wopenuri"):
     try:
         response = requests.put("https://api.spotify.com/v1/me/player/play", params=Params, headers=Headers, json=Payload)
         #if not quiet: print(response.request.headers)
+        #if not quiet: print(response.request.url)
         if not quiet: print('Answer status code:')
         if not quiet: print(response.status_code)
         if not quiet: print('')
@@ -796,6 +807,65 @@ if (sys.argv[1] == "-wopenuri"):
             
     sys.exit(0)
     
+#########################################################################################################################################
+
+if (sys.argv[1] == "-waddtocurrentqueue"):
+
+    if not quiet: print('Preparing the given uri...')
+    ####################################################
+    if not quiet: print('')
+    
+    if waddtocurrentqueue_link == '':
+        print('Unable to read the given uri')
+        if not quiet: print('')
+        if not nostatus: print('false')
+        sys.exit(1)
+
+    if not quiet: print('Uri:')
+    if not quiet: print(waddtocurrentqueue_link)
+    if not quiet: print('')
+    
+    if not quiet: print('Requesting the given uri...')
+    ####################################################
+    if not quiet: print('')
+
+    Params = {}
+    Payload = {}
+    Headers = {"Authorization": "Bearer " + access_token}
+
+    if default_dev_id != '':
+        Params['device_id'] = default_dev_id
+
+    if 'track' in waddtocurrentqueue_link:    
+        Params['uri'] = waddtocurrentqueue_link
+    else:                                     
+        Params['uri'] = waddtocurrentqueue_link
+
+    if not quiet: print('Payload:')
+    if not quiet: print(waddtocurrentqueue_link)
+    if not quiet: print('')
+        
+    try:
+        response = requests.post("https://api.spotify.com/v1/me/player/queue", params=Params, headers=Headers, json=Payload)
+        #if not quiet: print(response.request.headers)
+        #if not quiet: print(response.request.url)
+        if not quiet: print('Answer status code:')
+        if not quiet: print(response.status_code)
+        if not quiet: print('')
+    except:
+        if not quiet: print('Parsing web request details not complete')
+
+    if response.status_code > 399:
+        if not nostatus: print('false')
+        if not quiet: print('')
+        sys.exit(1)
+    else:
+        if not nostatus: print('true')
+        if not quiet: print('')
+        sys.exit(0)
+            
+    sys.exit(0)
+
 #########################################################################################################################################
 
 if (sys.argv[1] == "-playpause"):
